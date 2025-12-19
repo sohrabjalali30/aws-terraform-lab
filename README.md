@@ -33,18 +33,7 @@ This project demonstrates a complete **Infrastructure as Code (IaC)** deployment
 ### 5. Monitoring & Observability (CloudWatch)
 - Set up **CloudWatch Log Groups** for centralized system logging.
 - Configured **Metric Alarms** to monitor database health and trigger alerts during high error rates.
-
-## 🚀 Getting Started
-
-### Prerequisites
-- **Docker** installed and running.
-- **Terraform** CLI.
-- **LocalStack** (Community Edition).
-
-### Deployment Steps
-1. **Start LocalStack:**
-   ```bash
-   localstack start -d
+_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_
 
 
 
