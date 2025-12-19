@@ -11,51 +11,70 @@ provider "aws" {
     s3  = "http://localhost:4566"
     iam = "http://localhost:4566"
     sts = "http://localhost:4566"
+    dynamodb = "http://localhost:4566"
+    ec2 = "http://localhost:4566"
+    cloudwatch = "http://localhost:4566"
+    logs = "http://localhost:4566"
   }
 }
 
 
-resource "aws_s3_bucket" "it_backups" {
-  bucket = "my-it-support-backups"
+resource "aws_vpc" "it_support_vpc" {
+  cidr_block = "10.0.0.0/16"
+  tags = { Name = "IT-Support-VPC" }
 }
 
 
-resource "aws_s3_bucket_versioning" "versioning_example" {
-  bucket = aws_s3_bucket.it_backups.id
-  versioning_configuration {
-    status = "Enabled"
+resource "aws_subnet" "support_subnet" {
+  vpc_id     = aws_vpc.it_support_vpc.id
+  cidr_block = "10.0.1.0/24"
+}
+
+
+resource "aws_security_group" "db_sg" {
+  name        = "database-access"
+  vpc_id      = aws_vpc.it_support_vpc.id
+
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
   }
 }
 
 
-resource "aws_iam_user" "intern_user" {
-  name = "it-intern"
+resource "aws_dynamodb_table" "it_logs" {
+  name           = "ITSupportLogs"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "LogID"
+
+  attribute {
+    name = "LogID"
+    type = "S" 
+  }
+
+  tags = {
+    Environment = "Dev"
+    Project     = "IT-Automation"
+  }
 }
 
 
-resource "aws_iam_policy" "s3_read_only" {
-  name        = "S3ReadOnlyPolicy"
-  description = "Allows only viewing buckets, no deletion"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action   = ["s3:Get*", "s3:List*"]
-        Effect   = "Allow"
-        Resource = "*"
-      }
-    ]
-  })
+resource "aws_cloudwatch_log_group" "it_support_logs" {
+  name              = "/aws/it-support/system-logs"
+  retention_in_days = 7
 }
 
 
-resource "aws_iam_user_policy_attachment" "attach_readonly" {
-  user       = aws_iam_user.intern_user.name
-  policy_arn = aws_iam_policy.s3_read_only.arn
-}
-
-
-output "new_iam_user" {
-  value = aws_iam_user.intern_user.name
+resource "aws_cloudwatch_metric_alarm" "database_health" {
+  alarm_name          = "High-Error-Rate"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = "Errors"
+  namespace           = "AWS/DynamoDB"
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "5"
+  alarm_description   = "This alarm monitors DynamoDB errors"
 }
